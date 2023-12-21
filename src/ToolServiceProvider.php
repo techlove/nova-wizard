@@ -61,7 +61,7 @@ class ToolServiceProvider extends ServiceProvider
     {
         Route::prefix('nova-api')->group(function () {
             Route::patch(
-                '{wizard}/creation-fields',
+                'wizard/{wizard}/creation-fields',
                 '\Wdelfuego\NovaWizard\Http\Controllers\WizardController@getFieldDefinition'
             );
         });
