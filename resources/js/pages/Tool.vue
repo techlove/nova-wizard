@@ -135,10 +135,6 @@ export default {
       vue.computedInstanceUrl = this.instanceUrl();
       vue.steps = vue.steps.map((step) => {
         step.fields.map((field) => {
-          console.log('load syncFieldEndpoint', field.methods);
-          field.computed.syncFieldEndpoint = () => {
-            console.log('syncFieldEndpoint', field);
-          }
           return field;
         });
         return step;
