@@ -113,15 +113,6 @@ export default {
         default:
           return 'step-wrapper hidden';
       }
-      if (this.currentStep === step) {
-        return 'step-wrapper active';
-      }
-      else if (this.currentStep > step) {
-        return 'step-wrapper past';
-      }
-      else {
-        return 'step-wrapper future';
-      }
     },
 
     reload() {
