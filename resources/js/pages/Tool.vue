@@ -1,48 +1,36 @@
 <template>
   <div class="nova-wizard" :class="{ finished: !!finished }">
+
     <Head title="Nova Wizard" />
 
-    <Card
-      class="flex flex-col items-left"
-      style="min-height: 660px;padding:0;"
-    >
+    <Card class="flex flex-col items-left" style="min-height: 660px;padding:0;">
 
-    <div id="progress-container" class="bg-gray-200 dark:bg-gray-700">
-      <div id="progress-bar"></div>
-    </div>
+      <div id="progress-container" class="bg-gray-200 dark:bg-gray-700">
+        <div id="progress-bar"></div>
+      </div>
 
-    <form id="wizardForm" v-if="!finished">
-      <div class="step-container">
+      <form id="wizardForm" v-if="!finished">
+        <div class="step-container">
 
           <template v-for="(step, index) in steps">
 
-            <div class="step-wrapper">
+            <div v-bind:class="getStepWrapperClass(index)">
               <h1>{{ step.title }}</h1>
 
-              <component
-                class="step-field"
-                v-for="field in step.fields"
-                :key="field.component + '-' + index"
-                ref="wizardComponents"
-                :is="'form-' + field.component"
-                :data-attribute="field.attribute"
-                :options="field.options"
-                :errors="errors"
-                showErrors="true"
-                :field="field"
-                :show-help-text="true"
-                :resourceName="'wizard'+computedInstanceUrl"
-              />
+              <component class="step-field" v-for="field in step.fields" :key="field.component + '-' + index"
+                ref="wizardComponents" :is="'form-' + field.component" :data-attribute="field.attribute"
+                :options="field.options" :errors="errors" showErrors="true" :field="field" :show-help-text="true"
+                :resourceName="'wizard' + computedInstanceUrl" />
             </div>
 
           </template>
 
-      </div>
-    </form>
+        </div>
+      </form>
 
-    <div v-if="!!finished" class="finished">
-      <h1 v-html="finishedMessage"></h1>
-    </div>
+      <div v-if="!!finished" class="finished">
+        <h1 v-html="finishedMessage"></h1>
+      </div>
 
     </Card>
 
@@ -76,6 +64,8 @@
 import { gsap } from 'gsap';
 import { ref, onMounted } from 'vue';
 import { Errors } from 'form-backend-validation';
+import { ScrollToPlugin } from 'gsap/dist/ScrollToPlugin';
+// import { ScrollSmoother } from 'gsap/dist/ScrollSmoother';
 
 const wizardComponents = ref([]);
 
@@ -110,8 +100,28 @@ export default {
       // }
       // else
       // {
-            this.reload();
+      this.reload();
       // }
+    },
+
+    getStepWrapperClass(step) {
+      console.log('Getting step wrapper', { currentStep: this.currentStep, step: step })
+
+      switch (this.currentStep) {
+        case step:
+          return 'step-wrapper active';
+        default:
+          return 'step-wrapper hidden';
+      }
+      if (this.currentStep === step) {
+        return 'step-wrapper active';
+      }
+      else if (this.currentStep > step) {
+        return 'step-wrapper past';
+      }
+      else {
+        return 'step-wrapper future';
+      }
     },
 
     reload() {
@@ -125,29 +135,28 @@ export default {
         .then(response => { this.reloadFromResponse(response); });
     },
 
-    reloadFromResponse(response)
-    {
-        let vue = this;
-        vue.styles = response.data.styles;
-        vue.windowTitle = response.data.windowTitle;
-        vue.title = response.data.title;
-        vue.steps = response.data.steps || [];
-        vue.computedInstanceUrl = this.instanceUrl();
-        vue.steps = vue.steps.map((step) => {
-            step.fields.map((field) => {
-                console.log('load syncFieldEndpoint', field.methods);
-                field.computed.syncFieldEndpoint = () => {
-                    console.log('syncFieldEndpoint', field);
-                }
-                return field;
-            });
-            return step;
+    reloadFromResponse(response) {
+      let vue = this;
+      vue.styles = response.data.styles;
+      vue.windowTitle = response.data.windowTitle;
+      vue.title = response.data.title;
+      vue.steps = response.data.steps || [];
+      vue.computedInstanceUrl = this.instanceUrl();
+      vue.steps = vue.steps.map((step) => {
+        step.fields.map((field) => {
+          console.log('load syncFieldEndpoint', field.methods);
+          field.computed.syncFieldEndpoint = () => {
+            console.log('syncFieldEndpoint', field);
+          }
+          return field;
         });
-        vue.loading = false;
-        vue.finished = !!response.data.success;
-        if(!!response.data.success) {
-          vue.finishedMessage = response.data.message || '✅';
-        }
+        return step;
+      });
+      vue.loading = false;
+      vue.finished = !!response.data.success;
+      if (!!response.data.success) {
+        vue.finishedMessage = response.data.message || '✅';
+      }
     },
 
     instanceUrl() {
@@ -156,8 +165,7 @@ export default {
     },
 
     nextButton() {
-      if(document.getElementById('wizardForm').reportValidity())
-      {
+      if (document.getElementById('wizardForm').reportValidity()) {
         this.currentStep += 1;
         this.updateScrollPosition(0.6);
       }
@@ -188,7 +196,7 @@ export default {
     submitButton() {
       const wizardForm = document.getElementById('wizardForm');
 
-      if(wizardForm.reportValidity()) {
+      if (wizardForm.reportValidity()) {
         if (this.allWizardFields.length > 0) {
           const formData = new FormData();
           this.allWizardFields.forEach((fieldComponent) => {
@@ -202,24 +210,20 @@ export default {
           let apiUrl = '/nova-vendor/wdelfuego/nova-wizard' + this.instanceUrl();
           Nova.request().post(apiUrl, formData)
             .then(response => {
-              if(response.status === 200) {
+              if (response.status === 200) {
                 this.errors = new Errors();
                 this.reloadFromResponse(response);
               }
             })
             .catch(error => {
               if (error.response) {
-                if(error.response.status === 500) {
-                  // Handle error with status code
-                  console.log('Error status:', error.response.status);
-                  console.log('Error data:', error.response.data);
-                }
-                else if(error.response.status === 422) {
+                if (error.response.status === 422) {
                   this.errors = new Errors(error.response.data.errors);
                   this.jumpToFirstStepWithError();
+                  return;
                 }
-                // console.log('Error status:', error.response.status);
-                // console.log('Error data:', error.response.data);
+                // Handle error with status code
+                console.error('Error:', { status: error.response.status, data: error.response.data });
               }
             });
 
@@ -232,53 +236,63 @@ export default {
     },
 
     focusOnFirstFieldInStep() {
-        let attribute = this.steps[this.currentStep].fields[0].attribute;
-        if(this.errors.any()) {
-            let found = false;
-            this.steps[this.currentStep].fields.forEach((field) => {
-                console.log(field);
-                if(!found && this.errors.has(field.attribute)) {
-                    attribute = field.attribute;
-                    found = true;
-                }
-            });
-        }
+      let attribute = this.steps[this.currentStep].fields[0].attribute;
+      if (this.errors.any()) {
+        let found = false;
+        this.steps[this.currentStep].fields.forEach((field) => {
+          console.log(field);
+          if (!found && this.errors.has(field.attribute)) {
+            attribute = field.attribute;
+            found = true;
+          }
+        });
+      }
 
-        const divElement = document.querySelector('div[data-attribute="' + attribute + '"]');
-        if(divElement) {
-            const firstInput = divElement.querySelector('input');
-            if (firstInput) {
-              firstInput.focus();
-            }
+      const divElement = document.querySelector('div[data-attribute="' + attribute + '"]');
+      if (divElement) {
+        const firstInput = divElement.querySelector('input');
+        if (firstInput) {
+          firstInput.focus();
         }
+      }
     },
 
     jumpToFirstStepWithError() {
-        if(!this.errors.any()) {
-            return;
-        }
+      if (!this.errors.any()) {
+        return;
+      }
 
-        let targetStep = -1;
-        let stepIndex = 0;
-        this.steps.forEach((step) => {
-            if(targetStep == -1) {
-              step.fields.forEach((field) => {
-                  if(targetStep == -1 && this.errors.has(field.attribute)) {
-                    targetStep = stepIndex;
-                  }
-              });
+      let targetStep = -1;
+      let stepIndex = 0;
+      this.steps.forEach((step) => {
+        if (targetStep == -1) {
+          step.fields.forEach((field) => {
+            if (targetStep == -1 && this.errors.has(field.attribute)) {
+              targetStep = stepIndex;
             }
-            stepIndex++;
-        });
-
-        if(targetStep > -1) {
-          this.currentStep = targetStep;
-          this.updateScrollPosition(1);
+          });
         }
+        stepIndex++;
+      });
+
+      if (targetStep > -1) {
+        this.currentStep = targetStep;
+        this.updateScrollPosition(1);
+      }
     },
 
     updateScrollPosition(animate) {
       const container = document.querySelector('.nova-wizard .step-container');
+
+      gsap.registerPlugin(ScrollToPlugin);
+
+
+      console.log('Scrolling to top');
+      gsap.to(window, {
+        scrollTo: 0,
+        duration: 0.3, // Animation duration in seconds,
+        ease: 'power2.out' // Easing function
+      });
 
       gsap.to(container, {
         duration: animate, // Animation duration in seconds
@@ -286,9 +300,8 @@ export default {
         ease: 'power2.out' // Easing function
       });
 
-      const progressBar = document.getElementById('progress-bar');
       let percentage = 0;
-      if(this.steps.length > 1) {
+      if (this.steps.length > 1) {
         percentage = this.currentStep / (this.steps.length - 1) * 100;
       }
 
@@ -305,21 +318,21 @@ export default {
   },
 
 
-  data () {
-      return {
-          loading: true,
-          currentStep: 0,
-          windowTitle: '',
-          allWizardFields:[],
-          errors: new Errors(),
-          finished: false,
-          finishedMessage: '✅',
-          title: '',
-          steps:[],
-          styles: {
-            default: { color: '#fff', 'background-color': 'rgba(var(--colors-primary-500), 0.9)' }
-          }
+  data() {
+    return {
+      loading: true,
+      currentStep: 0,
+      windowTitle: '',
+      allWizardFields: [],
+      errors: new Errors(),
+      finished: false,
+      finishedMessage: '✅',
+      title: '',
+      steps: [],
+      styles: {
+        default: { color: '#fff', 'background-color': 'rgba(var(--colors-primary-500), 0.9)' }
       }
+    }
   }
 
 }
