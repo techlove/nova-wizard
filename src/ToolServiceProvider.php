@@ -24,7 +24,7 @@ class ToolServiceProvider extends ServiceProvider
         });
 
         $this->publishes([
-            __DIR__.'/../config/nova-wizard.php' => config_path('nova-wizard.php'),
+            __DIR__ . '/../config/nova-wizard.php' => config_path('nova-wizard.php'),
         ], 'config');
     }
 
@@ -39,39 +39,36 @@ class ToolServiceProvider extends ServiceProvider
             return;
         }
 
-        foreach(config('nova-wizard', []) as $wizardKey => $wizardConfig)
-        {
-          if(is_array($wizardConfig))
-          {
-              if(!isset($wizardConfig['uri']))
-              {
-                  throw new \Exception("Missing config option `uri` for wizard `$wizardKey` in config/nova-wizard.php");
-              }
-              else if(!strlen(trim($wizardConfig['uri'])))
-              {
-                  throw new \Exception("Empty config option `uri` for wizard `$wizardKey` in config/nova-wizard.php");
-              }
-              else
-              {
-                  Nova::router(['nova', Authenticate::class, Authorize::class], $wizardConfig['uri'])
-                      ->group(__DIR__.'/../routes/inertia.php');
+        foreach (config('nova-wizard', []) as $wizardKey => $wizardConfig) {
+            if (is_array($wizardConfig)) {
+                if (!isset($wizardConfig['uri'])) {
+                    throw new \Exception("Missing config option `uri` for wizard `$wizardKey` in config/nova-wizard.php");
+                } elseif (!strlen(trim($wizardConfig['uri']))) {
+                    throw new \Exception("Empty config option `uri` for wizard `$wizardKey` in config/nova-wizard.php");
+                } else {
+                    Nova::router(['nova', Authenticate::class, Authorize::class], $wizardConfig['uri'])
+                      ->group(__DIR__ . '/../routes/inertia.php');
 
-                  Route::middleware(['nova', Authorize::class])
-                      ->prefix('nova-vendor/wdelfuego/nova-wizard/'.$wizardConfig['uri'])
-                      ->group(__DIR__.'/../routes/api.php');
-              }
-          }
+                    Route::middleware(['nova', Authorize::class])
+                      ->prefix('nova-vendor/wdelfuego/nova-wizard/' . $wizardConfig['uri'])
+                      ->group(__DIR__ . '/../routes/api.php');
+
+                    $this->addFieldDefinitionRoute($wizardConfig['uri']);
+                }
+            }
         }
     }
 
-    protected function addFieldDefinitionRoute()
+    protected function addFieldDefinitionRoute(string $wizardUri): void
     {
-        Route::prefix('nova-api')->group(function() {
-            Route::patch(
-                '/step/{step}/creation-fields',
-                '\Wdelfuego\NovaWizard\Http\Controllers\WizardController@getFieldDefinition'
-            );
-        });
+        Route::prefix('nova-api')->group(
+            function () use ($wizardUri) {
+                Route::patch(
+                    "wizard/{$wizardUri}/creation-fields",
+                    '\Wdelfuego\NovaWizard\Http\Controllers\WizardController@getFieldDefinition'
+                )->defaults('wizard', $wizardUri);
+            }
+        );
     }
 
     /**
