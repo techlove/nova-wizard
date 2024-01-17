@@ -94,14 +94,8 @@ export default {
   methods: {
 
     init() {
-      // if(this.hasStoredSettings()) {
-      //   this.restoreSettings();
-      //   this.reload(false);
-      // }
-      // else
-      // {
+
       this.reload();
-      // }
     },
 
     getStepWrapperClass(step) {
@@ -193,8 +187,8 @@ export default {
               console.warn('fieldComponent has no fill');
             }
           });
-
-          let apiUrl = '/nova-vendor/wdelfuego/nova-wizard' + this.instanceUrl();
+          
+          let apiUrl = '/nova-vendor/wdelfuego/nova-wizard' + this.instanceUrl() + window.location.search;
           Nova.request().post(apiUrl, formData)
             .then(response => {
               if (response.status === 200) {
@@ -209,8 +203,6 @@ export default {
                   this.jumpToFirstStepWithError();
                   return;
                 }
-                // Handle error with status code
-                console.error('Error:', { status: error.response.status, data: error.response.data });
               }
             });
 
@@ -221,28 +213,34 @@ export default {
         console.warn('wizardForm reports validity false');
       }
     },
+    
+    focusOnFirstFieldInStep() { 
+        if(this.currentStep > -1 
+            && this.steps[this.currentStep] 
+            && Array.isArray(this.steps[this.currentStep].fields)
+            && this.steps[this.currentStep].fields.length > 0)
+        {
 
-    focusOnFirstFieldInStep() {
-      let attribute = this.steps[this.currentStep].fields[0].attribute;
-      if (this.errors.any()) {
-        let found = false;
-        this.steps[this.currentStep].fields.forEach((field) => {
-          console.log(field);
-          if (!found && this.errors.has(field.attribute)) {
-            attribute = field.attribute;
-            found = true;
+          let attribute = this.steps[this.currentStep].fields[0].attribute;
+          if(this.errors.any()) {   
+              let found = false;
+              this.steps[this.currentStep].fields.forEach((field) => {
+                  if(!found && this.errors.has(field.attribute)) {   
+                      attribute = field.attribute;
+                      found = true;
+                  }
+              });
           }
-        });
-      }
-
-      const divElement = document.querySelector('div[data-attribute="' + attribute + '"]');
-      if (divElement) {
-        const firstInput = divElement.querySelector('input');
-        if (firstInput) {
-          firstInput.focus();
+        
+          const divElement = document.querySelector('div[data-attribute="' + attribute + '"]');
+          if(divElement) {
+              const firstInput = divElement.querySelector('input');
+              if (firstInput) {
+                firstInput.focus();
+              }
+          }
         }
-      }
-    },
+      },
 
     jumpToFirstStepWithError() {
       if (!this.errors.any()) {
@@ -273,19 +271,20 @@ export default {
 
       gsap.registerPlugin(ScrollToPlugin);
 
-
-      console.log('Scrolling to top');
       gsap.to(window, {
         scrollTo: 0,
         duration: 0.3, // Animation duration in seconds,
         ease: 'power2.out' // Easing function
       });
 
-      gsap.to(container, {
-        duration: animate, // Animation duration in seconds
-        scrollLeft: container.clientWidth * this.currentStep,
-        ease: 'power2.out' // Easing function
-      });
+      if(container)
+      {
+        gsap.to(container, {
+          duration: animate, // Animation duration in seconds
+          scrollLeft: container.clientWidth * this.currentStep,
+          ease: 'power2.out' // Easing function
+        });      
+      }
 
       let percentage = 0;
       if (this.steps.length > 1) {
@@ -301,7 +300,7 @@ export default {
       setTimeout(() => {
         this.focusOnFirstFieldInStep();
       }, animate * 1000);
-    },
+    }
   },
 
 
