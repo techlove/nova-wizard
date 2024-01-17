@@ -13,12 +13,12 @@
 
     <form id="wizardForm" v-if="!finished">
       <div class="step-container">
-      
+
           <template v-for="(step, index) in steps">
-      
+
             <div class="step-wrapper">
               <h1>{{ step.title }}</h1>
-      
+
               <component
                 class="step-field"
                 v-for="field in step.fields"
@@ -31,9 +31,10 @@
                 showErrors="true"
                 :field="field"
                 :show-help-text="true"
+                :resourceName="'wizard'+computedInstanceUrl"
               />
             </div>
-      
+
           </template>
 
       </div>
@@ -44,17 +45,17 @@
     </div>
 
     </Card>
-    
+
     <div v-if="!finished" class="step-buttons">
       <DefaultButton v-if="currentStep == steps.length - 1" class="button" align="center" @click="submitButton()">
         {{ __('Submit') }}
       </DefaultButton>
-      
+
       <OutlineButton v-if="currentStep < steps.length - 1" class="button" align="center" @click="nextButton()">
         {{ __('Next') }}
         <Icon class="icon" type="arrow-right" />
       </OutlineButton>
-      
+
       <ToolbarButton v-if="currentStep > 0" class="button" align="center" @click="previousButton()">
         <Icon class="icon" type="arrow-left" />
         {{ __('Previous') }}
@@ -90,13 +91,13 @@ export default {
 
     return { allWizardFields, wizardComponents };
   },
-  
+
   mounted() {
-  
+
     window.addEventListener('resize', () => {
       this.updateScrollPosition(0);
     });
-  
+
     this.init();
   },
 
@@ -109,10 +110,10 @@ export default {
 
       this.reload();
     },
-    
+
     reload() {
       this.loading = true;
-      
+
       // Work out the apiPath from the current Tool path, this works
       // because the ToolServiceProvider enforces that both use the same configurable uri part
       // + pass forwards the query params
@@ -120,7 +121,7 @@ export default {
       Nova.request().get(apiUrl)
         .then(response => { this.reloadFromResponse(response); });
     },
-    
+
     reloadFromResponse(response)
     {
         let vue = this;
@@ -128,6 +129,17 @@ export default {
         vue.windowTitle = response.data.windowTitle;
         vue.title = response.data.title;
         vue.steps = response.data.steps || [];
+        vue.computedInstanceUrl = this.instanceUrl();
+        vue.steps = vue.steps.map((step) => {
+            step.fields.map((field) => {
+                console.log('load syncFieldEndpoint', field.methods);
+                field.computed.syncFieldEndpoint = () => {
+                    console.log('syncFieldEndpoint', field);
+                }
+                return field;
+            });
+            return step;
+        });
         vue.loading = false;
         vue.finished = !!response.data.success;
         if(!!response.data.success) {
@@ -135,12 +147,12 @@ export default {
         }
         // this.storeState();
     },
-    
+
     instanceUrl() {
       const url = window.location.pathname.substring(Nova.url('').length);
       return url.startsWith('/') ? url : '/' + url;
     },
-    
+
     nextButton() {
       if(document.getElementById('wizardForm').reportValidity())
       {
@@ -148,17 +160,17 @@ export default {
         this.updateScrollPosition(0.6);
       }
     },
-    
+
     errorsForField(field) {
       console.log(this.fieldErrors[field.attribute] || {});
       return this.fieldErrors[field.attribute] || {};
     },
-    
+
     previousButton() {
       this.currentStep -= 1;
       this.updateScrollPosition(0.8);
     },
-    
+
     resetButton() {
       this.finished = false;
       this.errors = new Errors();
@@ -166,11 +178,11 @@ export default {
       this.currentStep = 0;
       this.updateScrollPosition(0);
     },
-    
+
     currentStepData() {
       return this.steps[this.currentStep];
     },
-    
+
     submitButton() {
       const wizardForm = document.getElementById('wizardForm');
 
@@ -187,10 +199,10 @@ export default {
           
           let apiUrl = '/nova-vendor/wdelfuego/nova-wizard' + this.instanceUrl() + window.location.search;
           Nova.request().post(apiUrl, formData)
-            .then(response => { 
+            .then(response => {
               if(response.status === 200) {
                 this.errors = new Errors();
-                this.reloadFromResponse(response); 
+                this.reloadFromResponse(response);
               }
             })
             .catch(error => {
@@ -206,7 +218,7 @@ export default {
                 }
               }
             });
-            
+
         } else {
           console.warn('no wizard fields found in form');
         }
@@ -242,12 +254,12 @@ export default {
           }
         }
     },
-    
+
     jumpToFirstStepWithError() {
         if(!this.errors.any()) {
             return;
         }
-        
+
         let targetStep = -1;
         let stepIndex = 0;
         this.steps.forEach((step) => {
@@ -260,13 +272,13 @@ export default {
             }
             stepIndex++;
         });
-        
+
         if(targetStep > -1) {
           this.currentStep = targetStep;
           this.updateScrollPosition(1);
         }
     },
-    
+
     updateScrollPosition(animate) {
       const container = document.querySelector('.nova-wizard .step-container');
 
@@ -282,21 +294,21 @@ export default {
       const progressBar = document.getElementById('progress-bar');
       let percentage = 0;
       if(this.steps.length > 1) {
-        percentage = this.currentStep / (this.steps.length - 1) * 100;      
+        percentage = this.currentStep / (this.steps.length - 1) * 100;
       }
-      
+
       gsap.to("#progress-bar", {
         duration: animate,
         width: `${percentage}%`,
         ease: 'power2.out' // Easing function
       });
-      
+
       setTimeout(() => {
         this.focusOnFirstFieldInStep();
       }, animate * 1000);
     },
   },
-  
+
 
   data () {
       return {
@@ -314,7 +326,7 @@ export default {
           }
       }
   }
-  
+
 }
 </script>
 

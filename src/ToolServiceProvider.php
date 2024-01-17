@@ -18,6 +18,7 @@ class ToolServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        $this->addFieldDefinitionRoute();
         $this->app->booted(function () {
             $this->routes();
         });
