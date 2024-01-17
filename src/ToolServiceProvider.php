@@ -18,7 +18,6 @@ class ToolServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->addFieldDefinitionRoute();
         $this->app->booted(function () {
             $this->routes();
         });
@@ -52,19 +51,23 @@ class ToolServiceProvider extends ServiceProvider
                     Route::middleware(['nova', Authorize::class])
                       ->prefix('nova-vendor/wdelfuego/nova-wizard/' . $wizardConfig['uri'])
                       ->group(__DIR__ . '/../routes/api.php');
+
+                    $this->addFieldDefinitionRoute($wizardConfig['uri']);
                 }
             }
         }
     }
 
-    protected function addFieldDefinitionRoute()
+    protected function addFieldDefinitionRoute(string $wizardUri): void
     {
-        Route::prefix('nova-api')->group(function () {
-            Route::patch(
-                'wizard/{wizard}/creation-fields',
-                '\Wdelfuego\NovaWizard\Http\Controllers\WizardController@getFieldDefinition'
-            );
-        });
+        Route::prefix('nova-api')->group(
+            function () use ($wizardUri) {
+                Route::patch(
+                    "wizard/{$wizardUri}/creation-fields",
+                    '\Wdelfuego\NovaWizard\Http\Controllers\WizardController@getFieldDefinition'
+                )->defaults('wizard', $wizardUri);
+            }
+        );
     }
 
     /**
