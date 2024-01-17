@@ -21,7 +21,6 @@ use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Carbon;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
-
 class WizardController extends BaseController
 {
     // Must match the hard-coded value in Tool.vue's reload() method
@@ -35,8 +34,7 @@ class WizardController extends BaseController
         $this->request = $request;
 
         // Load data providers, keyed by uri
-        foreach(config('nova-wizard', []) as $wizardKey => $wizardConfig)
-        {
+        foreach (config('nova-wizard', []) as $wizardKey => $wizardConfig) {
             // We are assuming these keys to exist since the Nova Tool
             // does all sorts of checks on initiation
             // Not sure if that assumption is completely valid but assuming valid config for now
@@ -48,8 +46,7 @@ class WizardController extends BaseController
 
     protected function getWizardForUri(string $uri)
     {
-        if(!isset($this->wizards[$uri]))
-        {
+        if (!isset($this->wizards[$uri])) {
             throw new \Exception("Unknown wizard uri: $uri");
         }
 
@@ -75,17 +72,17 @@ class WizardController extends BaseController
         return $wizard->submitWizard($this->request);
     }
 
-    public function getFieldDefinition(string $step, NovaRequest $request)
+    public function getFieldDefinition(string $wizard, NovaRequest $request)
     {
         $forms = config('nova-wizard');
-        if (!isset($forms[$step])) {
+        if (!isset($forms[$wizard])) {
             return response()->json([
-                'message' => 'Step not found'
+                'message' => 'Wizard not found'
             ], 404);
         }
-        $class = $forms[$step]['class'];
+        $class = $forms[$wizard]['class'];
         $instance = new $class();
-        $steps = $instance->wizardViewData();
+        $steps = $instance->withRequest($request)->wizardViewData();
         $field = collect($steps['steps'])
             ->map(
                 fn ($step) => collect($step['fields'])
@@ -105,5 +102,4 @@ class WizardController extends BaseController
             $field
         );
     }
-
 }
